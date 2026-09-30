@@ -139,7 +139,7 @@ export const KeyframePage: React.FC = () => {
     message: string;
   }>({
     configured: false,
-    model: 'dall-e-3',
+    model: 'gpt-image-1',
     message: 'Checking provider status...'
   });
 
@@ -273,7 +273,7 @@ export const KeyframePage: React.FC = () => {
         if (result.is_demo) {
           showToast(`Keyframe synthesized via Studio Preview Engine`, 'info');
         } else {
-          showToast(`Keyframe synthesized with OpenAI Image Generation`, 'success');
+          showToast(`Keyframe synthesized with OpenAI gpt-image-1`, 'success');
         }
       } else {
         showToast(result.message || 'Keyframe generation error', 'error');
@@ -819,7 +819,7 @@ export const KeyframePage: React.FC = () => {
                 />
                 <span className="text-[10px] font-mono-code text-[#FAFAFA]">
                   {providerStatus.configured
-                    ? 'OpenAI Image Generation Active'
+                    ? `OpenAI (${providerStatus.model || 'gpt-image-1'}) Active`
                     : 'Studio Preview Engine'}
                 </span>
               </div>

@@ -870,7 +870,7 @@ export class ProjectService {
       file_type: 'image',
       category,
       tags: ['Approved Keyframe', 'Keyframe Vault', category],
-      dimensions: '1792x1024',
+      dimensions: '1536x1024',
       size_bytes: 4200000,
       created_at: new Date().toISOString()
     };

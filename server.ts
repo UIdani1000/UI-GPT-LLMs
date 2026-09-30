@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, GenerateVideosOperation } from '@google/genai';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
@@ -15,7 +16,16 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: '50mb' }));
 
-// Health / Provider Status API (Prompt 04 & 06/07)
+const getSupabaseAdmin = () => {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  if (url && key && url !== 'MY_SUPABASE_URL' && key !== 'MY_SUPABASE_SERVICE_ROLE_KEY' && key !== 'MY_SUPABASE_ANON_KEY') {
+    return createClient(url, key);
+  }
+  return null;
+};
+
+// Health / Provider Status API
 app.get('/api/providers/status', (req, res) => {
   const hasOpenAI = !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'MY_OPENAI_API_KEY';
   const rawGemini = process.env.GEMINI_API_KEY || process.env.API_KEY;
@@ -29,9 +39,9 @@ app.get('/api/providers/status', (req, res) => {
     openai: {
       configured: hasOpenAI,
       provider: 'OpenAI Image Generation',
-      model: 'dall-e-3',
+      model: 'gpt-image-1',
       message: hasOpenAI
-        ? 'OpenAI API key active on server'
+        ? 'OpenAI API key active on server (gpt-image-1)'
         : 'Add OPENAI_API_KEY to your server environment secrets.'
     },
     gemini_veo: {
@@ -84,8 +94,7 @@ app.get('/api/supabase/config', (req, res) => {
 });
 
 // OpenAI Image Generation Proxy API
-// Uses current OpenAI Images API: https://api.openai.com/v1/images/generations
-// Model: dall-e-3 (current stable model)
+// Current official OpenAI multimodal image generation API (gpt-image-1)
 app.post('/api/image/generate', async (req, res) => {
   try {
     const { prompt, aspectRatio = '16:9', quality = 'standard', references = [], projectId, shotId } = req.body;
@@ -108,29 +117,46 @@ app.post('/api/image/generate', async (req, res) => {
       });
     }
 
-    // Map aspect ratio to OpenAI dall-e-3 supported dimensions
-    // dall-e-3 supports: 1024x1024, 1792x1024, 1024x1792
-    let size = '1792x1024';
+    // Map aspect ratio to OpenAI gpt-image-1 supported dimensions
+    // gpt-image-1 supports: 1536x1024 (landscape / 16:9), 1024x1536 (portrait / 9:16), 1024x1024 (square / 1:1)
+    let size = '1536x1024';
     if (aspectRatio === '9:16') {
-      size = '1024x1792';
+      size = '1024x1536';
     } else if (aspectRatio === '1:1') {
       size = '1024x1024';
     }
 
-    // Call OpenAI Images API with dall-e-3 model
+    // Map quality options to gpt-image-1 supported values: 'low' | 'medium' | 'high'
+    // UI provides 'standard' | 'hd'
+    const mappedQuality = quality === 'hd' ? 'high' : 'medium';
+
+    // Call OpenAI Images API with current gpt-image-1 model
+    const requestPayload: Record<string, any> = {
+      model: 'gpt-image-1',
+      prompt,
+      n: 1,
+      size,
+      quality: mappedQuality,
+      output_format: 'png'
+    };
+
+    console.log('[OpenAI Image Generation Request]', {
+      model: requestPayload.model,
+      size: requestPayload.size,
+      quality: requestPayload.quality,
+      output_format: requestPayload.output_format,
+      aspectRatio,
+      promptLength: prompt.length,
+      referenceCount: Array.isArray(references) ? references.length : 0
+    });
+
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`
       },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt,
-        n: 1,
-        size,
-        quality: quality === 'hd' ? 'hd' : 'standard'
-      })
+      body: JSON.stringify(requestPayload)
     });
 
     if (!response.ok) {
@@ -145,9 +171,10 @@ app.post('/api/image/generate', async (req, res) => {
         errorType = 'RATE_LIMITED';
         console.error('[OpenAI Rate Limit]', response.status, 'Too many requests');
       } else if (response.status === 400) {
-        console.error('[OpenAI Bad Request]', response.status, errMessage);
+        errorType = 'INVALID_REQUEST';
+        console.error('[OpenAI Invalid Request]', response.status, errMessage);
       } else {
-        console.error('[OpenAI API Error]', response.status, errMessage);
+        console.error('[OpenAI Provider Error]', response.status, errMessage);
       }
 
       return res.status(response.status).json({
@@ -160,21 +187,67 @@ app.post('/api/image/generate', async (req, res) => {
     const data = await response.json();
     const generatedImage = data.data?.[0];
 
-    if (!generatedImage || !generatedImage.url) {
+    if (!generatedImage) {
       return res.status(500).json({
         success: false,
         error: 'PROVIDER_ERROR',
-        message: 'No image URL was returned by OpenAI.'
+        message: 'No image data was returned by OpenAI.'
+      });
+    }
+
+    let imageUrl = '';
+
+    // Handle gpt-image-1 base64 output
+    if (generatedImage.b64_json) {
+      const buffer = Buffer.from(generatedImage.b64_json, 'base64');
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        try {
+          const fileName = `keyframe-${shotId || Date.now()}-${Math.random().toString(36).slice(2, 7)}.png`;
+          const filePath = `projects/${projectId || 'global'}/keyframes/${fileName}`;
+          const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from('cinematic-vault')
+            .upload(filePath, buffer, {
+              contentType: 'image/png',
+              upsert: true
+            });
+
+          if (!uploadErr && uploadData) {
+            const { data: pubData } = supabase.storage
+              .from('cinematic-vault')
+              .getPublicUrl(filePath);
+            if (pubData?.publicUrl) {
+              imageUrl = pubData.publicUrl;
+            }
+          }
+        } catch (storageErr) {
+          console.warn('[Supabase Storage Keyframe Upload Warning]', storageErr);
+        }
+      }
+
+      // Fallback to data URI if storage upload was not completed
+      if (!imageUrl) {
+        imageUrl = `data:image/png;base64,${generatedImage.b64_json}`;
+      }
+    } else if (generatedImage.url) {
+      imageUrl = generatedImage.url;
+    }
+
+    if (!imageUrl) {
+      return res.status(500).json({
+        success: false,
+        error: 'PROVIDER_ERROR',
+        message: 'No valid image URL or base64 payload returned by OpenAI.'
       });
     }
 
     return res.json({
       success: true,
-      imageUrl: generatedImage.url,
+      imageUrl,
       revisedPrompt: generatedImage.revised_prompt || prompt,
-      model: 'dall-e-3',
+      model: 'gpt-image-1',
       aspectRatio,
-      quality
+      quality: mappedQuality
     });
   } catch (err: any) {
     console.error('[Server Image Generation Error]', err);
@@ -345,12 +418,12 @@ app.post('/api/assembly/export', async (req, res) => {
   });
 });
 
-// Edit Image Foundation Endpoint (Section 20)
+// Edit Image Foundation Endpoint
 app.post('/api/image/edit', (req, res) => {
   return res.status(501).json({
     success: false,
     error: 'NOT_SUPPORTED',
-    message: 'Image inpainting is not currently supported; edit pipeline staged for upcoming image model integration.'
+    message: 'Image editing with mask is staged for upcoming gpt-image-1 multimodal edit pipeline.'
   });
 });
 

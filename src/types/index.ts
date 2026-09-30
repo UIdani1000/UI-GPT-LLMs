@@ -39,7 +39,7 @@ export interface KeyframeGeneration {
   version_number: number; // e.g. 1, 2, 3...
   prompt: string;
   references: KeyframeReference[];
-  model: string; // e.g. "OpenAI Image (DALL·E 3)"
+  model: string; // e.g. "OpenAI Image (gpt-image-1)"
   aspect_ratio: AspectRatio;
   quality?: 'standard' | 'hd';
   status: 'completed' | 'failed' | 'generating';

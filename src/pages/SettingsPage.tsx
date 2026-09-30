@@ -17,7 +17,7 @@ export const SettingsPage: React.FC = () => {
   const { showToast } = useProject();
   const [defaultRatio, setDefaultRatio] = useState('16:9');
   const [providerStatuses, setProviderStatuses] = useState({
-    openai: { configured: false, provider: 'OpenAI Image Generation', model: 'dall-e-3', message: '' },
+    openai: { configured: false, provider: 'OpenAI Image Generation', model: 'gpt-image-1', message: '' },
     gemini_veo: { configured: false, provider: 'Google Gemini / Veo', model: 'veo-3.1', message: '' },
     supabase: {
       configured: false,
@@ -70,7 +70,7 @@ export const SettingsPage: React.FC = () => {
               Zero Client-Side Secret Policy
             </h3>
             <p className="text-xs text-[#A1A1AA] leading-relaxed">
-              All AI provider calls (OpenAI Image Generation and Google Gemini / Veo) are strictly routed through server-side environment secrets (OPENAI_API_KEY, GEMINI_API_KEY). No keys are stored in browser, localStorage, or exposed to client-side code.
+              All AI provider calls (OpenAI gpt-image-1 and Google Gemini / Veo) are strictly routed through server-side environment secrets (OPENAI_API_KEY, GEMINI_API_KEY). No keys are stored in browser, localStorage, or exposed to client-side code.
             </p>
           </div>
         </div>
@@ -100,7 +100,7 @@ export const SettingsPage: React.FC = () => {
             </div>
 
             <div className="text-xs font-mono-code text-[#C084FC]">
-              OpenAI (dall-e-3)
+              OpenAI ({providerStatuses.openai.model || 'gpt-image-1'})
             </div>
 
             <p className="text-xs text-[#71717A] leading-relaxed">

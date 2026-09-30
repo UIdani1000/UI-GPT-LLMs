@@ -4,7 +4,7 @@ import { Shot, Project, KeyframeReference, AspectRatio } from '../types';
  * Keyframe Image Generation Service
  * Architecture:
  * UI -> imageGenerationService -> Server Proxy (/api/image/generate) -> OpenAI Images API
- * Model: dall-e-3 (current stable OpenAI image generation model)
+ * Model: gpt-image-1 (current official OpenAI multimodal image generation model)
  * Never exposes OPENAI_API_KEY in client bundles.
  */
 
@@ -69,21 +69,21 @@ export const imageGenerationService = {
       const res = await fetch('/api/providers/status');
       if (res.ok) {
         const data = await res.json();
-        return data.openai || { configured: false, model: 'dall-e-3', message: 'Offline' };
+        return data.openai || { configured: false, model: 'gpt-image-1', message: 'Offline' };
       }
     } catch {
       // ignore
     }
     return {
       configured: false,
-      model: 'dall-e-3',
+      model: 'gpt-image-1',
       message: 'Server status check unavailable'
     };
   },
 
   /**
    * Generate keyframe using server-side OpenAI image generation with studio fallback
-   * Calls /api/image/generate which proxies to OpenAI's images/generations endpoint
+   * Calls /api/image/generate which proxies to OpenAI's images/generations endpoint (gpt-image-1)
    */
   async generateKeyframe(request: KeyframeGenerationRequest): Promise<KeyframeGenerationResponse> {
     try {
@@ -106,7 +106,7 @@ export const imageGenerationService = {
         return {
           success: true,
           image_url: data.imageUrl,
-          model: data.model || 'OpenAI Image Generation',
+          model: data.model || 'gpt-image-1',
           revised_prompt: data.revisedPrompt,
           is_demo: false
         };
@@ -117,24 +117,30 @@ export const imageGenerationService = {
         return await this.generatePreviewFallback(request);
       }
 
-      // Handle structured API error
+      // Handle structured API error (preserves genuine provider errors without fake conversion)
       return {
         success: false,
         image_url: '',
-        model: 'OpenAI Image Generation',
+        model: 'gpt-image-1',
         error: data.error || 'PROVIDER_ERROR',
         message: data.message || 'The image provider returned an error.'
       };
     } catch (err: any) {
-      // Fallback gracefully on any network failure so creative session isn't halted
-      return await this.generatePreviewFallback(request);
+      console.error('[Keyframe Generation Client Error]', err);
+      return {
+        success: false,
+        image_url: '',
+        model: 'gpt-image-1',
+        error: 'NETWORK_ERROR',
+        message: err.message || 'Network communication error connecting to image generation service.'
+      };
     }
   },
 
   /**
    * Generates a high-definition preview fallback when OpenAI API key is unconfigured
    * Allows the designer to experience the entire workflow, history, and approval chain cleanly.
-   * Only used when API is not configured or network fails — not used for actual provider errors.
+   * Only used when API is not configured — genuine provider errors remain real errors.
    */
   async generatePreviewFallback(request: KeyframeGenerationRequest): Promise<KeyframeGenerationResponse> {
     await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -164,7 +170,7 @@ export const imageGenerationService = {
       model: 'Cinematic Studio Engine (Preview)',
       revised_prompt: request.prompt,
       is_demo: true,
-      message: 'Generated with Cinematic Studio Engine (Preview). Configure OPENAI_API_KEY in server environment for live image synthesis.'
+      message: 'Generated with Cinematic Studio Engine (Preview). Configure OPENAI_API_KEY in server environment for live gpt-image-1 synthesis.'
     };
   }
 };
