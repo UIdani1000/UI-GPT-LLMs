@@ -129,8 +129,7 @@ app.post('/api/image/generate', async (req, res) => {
         prompt,
         n: 1,
         size,
-        quality: quality === 'hd' ? 'hd' : 'standard',
-        response_format: 'url'
+        quality: quality === 'hd' ? 'hd' : 'standard'
       })
     });
 

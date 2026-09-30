@@ -57,7 +57,7 @@ export function buildCinematicPrompt(shot: Shot, project: Project): string {
   const composition = project.creative_concept?.visual_language_attributes?.composition || 'Centered product compositions with generous negative space';
 
   // Assembles studio-grade master prompt
-  return `Premium cinematic commercial product photograph of ${productName} in a ${environment}. Purpose: ${purpose}. Visual choreography: ${visualDesc}. Lens perspective: ${lens}, ${camera}, shal[...]
+  return `Premium cinematic commercial product photograph of ${productName} in a ${environment}. Purpose: ${purpose}. Visual choreography: ${visualDesc}. Lens perspective: ${lens}, ${camera}, shallow depth of field. Lighting atmosphere: ${lighting} with restrained specular reflections and deep controlled shadow falloff. Surface materials: ${materials}. Composition: ${composition}. Strict continuity laws: preserve exact product geometry, authentic proportions, physical knurling and visible branding from reference. 8k high-end industrial design film still, no visual clutter, no product deformation, no altered typography, zero stock-photo aesthetic.`;
 }
 
 export const imageGenerationService = {
