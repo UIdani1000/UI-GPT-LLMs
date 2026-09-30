@@ -3,7 +3,8 @@ import { Shot, Project, KeyframeReference, AspectRatio } from '../types';
 /**
  * Keyframe Image Generation Service
  * Architecture:
- * UI -> imageGenerationService -> Server Proxy (/api/image/generate) -> OpenAI DALL·E 3 API
+ * UI -> imageGenerationService -> Server Proxy (/api/image/generate) -> OpenAI Images API
+ * Model: dall-e-3 (current stable OpenAI image generation model)
  * Never exposes OPENAI_API_KEY in client bundles.
  */
 
@@ -81,7 +82,8 @@ export const imageGenerationService = {
   },
 
   /**
-   * Generate keyframe using server-side OpenAI Image integration with studio fallback
+   * Generate keyframe using server-side OpenAI image generation with studio fallback
+   * Calls /api/image/generate which proxies to OpenAI's images/generations endpoint
    */
   async generateKeyframe(request: KeyframeGenerationRequest): Promise<KeyframeGenerationResponse> {
     try {
@@ -104,7 +106,7 @@ export const imageGenerationService = {
         return {
           success: true,
           image_url: data.imageUrl,
-          model: 'OpenAI DALL·E 3',
+          model: data.model || 'OpenAI Image Generation',
           revised_prompt: data.revisedPrompt,
           is_demo: false
         };
@@ -119,7 +121,7 @@ export const imageGenerationService = {
       return {
         success: false,
         image_url: '',
-        model: 'OpenAI DALL·E 3',
+        model: 'OpenAI Image Generation',
         error: data.error || 'PROVIDER_ERROR',
         message: data.message || 'The image provider returned an error.'
       };
@@ -132,6 +134,7 @@ export const imageGenerationService = {
   /**
    * Generates a high-definition preview fallback when OpenAI API key is unconfigured
    * Allows the designer to experience the entire workflow, history, and approval chain cleanly.
+   * Only used when API is not configured or network fails — not used for actual provider errors.
    */
   async generatePreviewFallback(request: KeyframeGenerationRequest): Promise<KeyframeGenerationResponse> {
     await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -161,7 +164,7 @@ export const imageGenerationService = {
       model: 'Cinematic Studio Engine (Preview)',
       revised_prompt: request.prompt,
       is_demo: true,
-      message: 'Generated with Cinematic Studio Engine (Preview). Configure OPENAI_API_KEY in server environment for live DALL·E 3 synthesis.'
+      message: 'Generated with Cinematic Studio Engine (Preview). Configure OPENAI_API_KEY in server environment for live image synthesis.'
     };
   }
 };
