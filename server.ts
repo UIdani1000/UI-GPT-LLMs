@@ -28,7 +28,7 @@ app.get('/api/providers/status', (req, res) => {
   res.json({
     openai: {
       configured: hasOpenAI,
-      provider: 'OpenAI Image',
+      provider: 'OpenAI Image Generation',
       model: 'dall-e-3',
       message: hasOpenAI
         ? 'OpenAI API key active on server'
@@ -83,7 +83,9 @@ app.get('/api/supabase/config', (req, res) => {
   });
 });
 
-// OpenAI Image Generation Proxy API (Sections 12, 13, 14, 28)
+// OpenAI Image Generation Proxy API
+// Uses current OpenAI Images API: https://api.openai.com/v1/images/generations
+// Model: dall-e-3 (current stable model)
 app.post('/api/image/generate', async (req, res) => {
   try {
     const { prompt, aspectRatio = '16:9', quality = 'standard', references = [], projectId, shotId } = req.body;
@@ -106,9 +108,8 @@ app.post('/api/image/generate', async (req, res) => {
       });
     }
 
-    // Map aspect ratio to OpenAI supported image sizes
-    // dall-e-3: 1024x1024, 1792x1024, 1024x1792
-    // dall-e-2: 256x256, 512x512, 1024x1024
+    // Map aspect ratio to OpenAI dall-e-3 supported dimensions
+    // dall-e-3 supports: 1024x1024, 1792x1024, 1024x1792
     let size = '1792x1024';
     if (aspectRatio === '9:16') {
       size = '1024x1792';
@@ -116,7 +117,7 @@ app.post('/api/image/generate', async (req, res) => {
       size = '1024x1024';
     }
 
-    // Call OpenAI Images API server-side with dall-e-3 model
+    // Call OpenAI Images API with dall-e-3 model
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -138,10 +139,17 @@ app.post('/api/image/generate', async (req, res) => {
       const errMessage = errData.error?.message || response.statusText;
 
       let errorType = 'PROVIDER_ERROR';
-      if (response.status === 401) errorType = 'AUTH_ERROR';
-      else if (response.status === 429) errorType = 'RATE_LIMITED';
-
-      console.error('[OpenAI Image Error]', response.status, errMessage);
+      if (response.status === 401) {
+        errorType = 'AUTH_ERROR';
+        console.error('[OpenAI Auth Error]', response.status, 'Invalid or expired API key');
+      } else if (response.status === 429) {
+        errorType = 'RATE_LIMITED';
+        console.error('[OpenAI Rate Limit]', response.status, 'Too many requests');
+      } else if (response.status === 400) {
+        console.error('[OpenAI Bad Request]', response.status, errMessage);
+      } else {
+        console.error('[OpenAI API Error]', response.status, errMessage);
+      }
 
       return res.status(response.status).json({
         success: false,
