@@ -100,7 +100,7 @@ export const KeyframePage: React.FC = () => {
                   });
                   setSelectedShotId(newShot.id);
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-[#EC4899] text-white rounded-[12px] text-xs font-semibold shadow-[0_0_20px_rgba(139,92,246,0.35)] hover:opacity-95 transition-all cursor-pointer active:scale-[0.98]"
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-[#EC4899] text-white rounded-[12px] text-xs font-semibold shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:opacity-95 transition-opacity cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Add First Shot</span>
@@ -273,7 +273,7 @@ export const KeyframePage: React.FC = () => {
         if (result.is_demo) {
           showToast(`Keyframe synthesized via Studio Preview Engine`, 'info');
         } else {
-          showToast(`Keyframe synthesized with OpenAI DALL·E 3`, 'success');
+          showToast(`Keyframe synthesized with OpenAI Image Generation`, 'success');
         }
       } else {
         showToast(result.message || 'Keyframe generation error', 'error');
@@ -819,7 +819,7 @@ export const KeyframePage: React.FC = () => {
                 />
                 <span className="text-[10px] font-mono-code text-[#FAFAFA]">
                   {providerStatus.configured
-                    ? 'OpenAI DALL·E 3 Active'
+                    ? 'OpenAI Image Generation Active'
                     : 'Studio Preview Engine'}
                 </span>
               </div>
@@ -834,7 +834,7 @@ export const KeyframePage: React.FC = () => {
                 type="button"
                 onClick={handleGenerateKeyframe}
                 disabled={isGenerating}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-[#EC4899] hover:opacity-95 text-white rounded-[12px] text-xs font-semibold shadow-[0_0_24px_rgba(139,92,246,0.35)] transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-[#EC4899] hover:opacity-95 text-white rounded-[12px] text-xs font-semibold shadow-[0_0_20px_rgba(139,92,246,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
               >
                 {isGenerating ? (
                   <>
