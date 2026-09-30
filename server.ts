@@ -106,7 +106,9 @@ app.post('/api/image/generate', async (req, res) => {
       });
     }
 
-    // Map aspect ratio to DALL-E 3 supported dimensions
+    // Map aspect ratio to OpenAI supported image sizes
+    // dall-e-3: 1024x1024, 1792x1024, 1024x1792
+    // dall-e-2: 256x256, 512x512, 1024x1024
     let size = '1792x1024';
     if (aspectRatio === '9:16') {
       size = '1024x1792';
@@ -114,7 +116,7 @@ app.post('/api/image/generate', async (req, res) => {
       size = '1024x1024';
     }
 
-    // Call real OpenAI Images API server-side
+    // Call OpenAI Images API server-side with dall-e-3 model
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -126,7 +128,8 @@ app.post('/api/image/generate', async (req, res) => {
         prompt,
         n: 1,
         size,
-        quality: quality === 'hd' ? 'hd' : 'standard'
+        quality: quality === 'hd' ? 'hd' : 'standard',
+        response_format: 'url'
       })
     });
 
@@ -340,7 +343,7 @@ app.post('/api/image/edit', (req, res) => {
   return res.status(501).json({
     success: false,
     error: 'NOT_SUPPORTED',
-    message: 'DALL·E 3 does not currently support inpainting masks; edit pipeline staged for upcoming image model integration.'
+    message: 'Image inpainting is not currently supported; edit pipeline staged for upcoming image model integration.'
   });
 });
 
