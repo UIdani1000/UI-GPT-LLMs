@@ -1,9 +1,10 @@
 import { Asset } from '../types';
 import { ProjectService } from './projectService';
+import { supabaseService } from './supabaseService';
 
 /**
  * Storage Service
- * Abstracted for local memory / Supabase Storage migration.
+ * Supports Supabase Storage bucket 'cinematic-vault' with local vault fallback.
  */
 export const storageService = {
   async listAssets(projectId?: string, category?: string): Promise<Asset[]> {
@@ -18,17 +19,32 @@ export const storageService = {
   },
 
   async uploadAsset(file: File, category: Asset['category'], projectId?: string): Promise<Asset> {
-    // Generate object URL or data URL
-    const objectUrl = URL.createObjectURL(file);
+    let fileUrl = URL.createObjectURL(file);
+    let storagePath: string | undefined = undefined;
+
+    // Check if Supabase Storage is configured (Phase C Section 26)
+    if (supabaseService.isConfigured()) {
+      const uploadRes = await supabaseService.uploadAssetFile(
+        projectId || 'proj-novair-one',
+        file,
+        file.name,
+        'references'
+      );
+      if (uploadRes.success && uploadRes.url) {
+        fileUrl = uploadRes.url;
+        storagePath = uploadRes.storagePath;
+      }
+    }
+
     const newAsset: Asset = {
       id: `asset-${Date.now()}`,
       project_id: projectId,
       name: file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '),
       file_name: file.name,
-      file_url: objectUrl,
+      file_url: fileUrl,
       file_type: file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image',
       category: category || 'Product',
-      tags: [category || 'Upload', 'Local Asset'],
+      tags: [category || 'Upload', storagePath ? 'Cloud Stored' : 'Local Vault'],
       dimensions: '3840x2160',
       size_bytes: file.size,
       created_at: new Date().toISOString()

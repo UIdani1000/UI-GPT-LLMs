@@ -363,17 +363,26 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
           </div>
         )}
 
-        {/* Generating Overlay */}
+        {/* Generating Overlay with Contextual Phase */}
         {isGenerating && (
-          <div className="absolute inset-0 bg-[#09090B]/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 z-30">
-            <div className="w-14 h-14 rounded-full border-2 border-[#A855F7]/30 border-t-[#A855F7] animate-spin mb-4" />
-            <h4 className="font-display text-sm font-semibold text-[#FAFAFA] tracking-tight">
-              Synthesizing Cinematic Shot
+          <div className="absolute inset-0 bg-[#09090B]/90 backdrop-blur-md flex flex-col items-center justify-center p-6 z-30 animate-in fade-in duration-200">
+            <div className="relative mb-4">
+              <div className="w-16 h-16 rounded-full border-2 border-[#A855F7]/20 border-t-[#A855F7] animate-spin" />
+              <Film className="w-7 h-7 text-[#C084FC] absolute inset-0 m-auto animate-pulse" />
+            </div>
+            <h4 className="font-display text-base font-bold text-[#FAFAFA] tracking-tight">
+              {generationProgress < 35
+                ? 'Generating Motion Study…'
+                : generationProgress < 70
+                ? 'Interpolating Camera Physics…'
+                : generationProgress < 95
+                ? 'Synthesizing 4K Motion Vectors…'
+                : 'Finalizing Film Buffer…'}
             </h4>
-            <p className="text-xs text-[#A1A1AA] font-mono-code mt-1">
-              Google Gemini / Veo 3.1 Motion Pipeline · {generationProgress}%
+            <p className="text-xs text-[#A855F7] font-mono-code mt-1.5">
+              Google Gemini / Veo 3.1 Pipeline · {generationProgress}%
             </p>
-            <div className="w-56 h-1.5 bg-[#15151B] rounded-full overflow-hidden mt-3 border border-white/[0.08]">
+            <div className="w-64 h-1.5 bg-[#15151B] rounded-full overflow-hidden mt-3.5 border border-white/[0.08]">
               <div
                 className="h-full bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-[#EC4899] transition-all duration-300"
                 style={{ width: `${generationProgress}%` }}

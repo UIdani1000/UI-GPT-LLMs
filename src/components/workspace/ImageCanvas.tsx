@@ -112,7 +112,11 @@ export const ImageCanvas: React.FC<ImageCanvasProps> = ({
             className="w-full h-full flex items-center justify-center p-3 transition-transform duration-200"
             style={{ transform: `scale(${zoomLevel / 100})` }}
           >
-            <div className="relative aspect-video max-w-full max-h-full rounded-[14px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/[0.08]">
+            <div className={`relative aspect-video max-w-full max-h-full rounded-[14px] overflow-hidden transition-all duration-300 ${
+              isCurrentShotApproved
+                ? 'shadow-[0_0_50px_rgba(139,92,246,0.3)] ring-1 ring-[#A855F7]/50 border border-[#A855F7]/40'
+                : 'shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/[0.08]'
+            }`}>
               <img
                 src={shot.keyframe_url}
                 alt={shot.title}
@@ -158,16 +162,22 @@ export const ImageCanvas: React.FC<ImageCanvasProps> = ({
           </div>
         )}
 
-        {/* Generating Overlay */}
+        {/* Generating Overlay with Contextual Progress */}
         {isGenerating && (
-          <div className="absolute inset-0 bg-[#09090B]/85 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-            <div className="w-12 h-12 rounded-full border-2 border-[#A855F7]/30 border-t-[#A855F7] animate-spin mb-4" />
-            <h4 className="font-display text-sm font-semibold text-[#FAFAFA] tracking-tight">
-              Synthesizing Cinematic Keyframe
+          <div className="absolute inset-0 bg-[#09090B]/90 backdrop-blur-md flex flex-col items-center justify-center p-6 z-20 animate-in fade-in duration-200">
+            <div className="relative mb-5">
+              <div className="w-14 h-14 rounded-full border-2 border-[#A855F7]/20 border-t-[#A855F7] animate-spin" />
+              <Sparkles className="w-6 h-6 text-[#C084FC] absolute inset-0 m-auto animate-pulse" />
+            </div>
+            <h4 className="font-display text-base font-bold text-[#FAFAFA] tracking-tight">
+              Synthesizing Keyframe…
             </h4>
-            <p className="text-xs text-[#A1A1AA] font-mono-code mt-1">
-              OpenAI Image / Studio Synthesis Engine · 4K Resolution
+            <p className="text-xs text-[#C084FC] font-mono-code mt-1.5">
+              Composing lighting, camera optics & materials
             </p>
+            <div className="w-48 h-1 bg-[#15151B] rounded-full overflow-hidden mt-3 border border-white/[0.08]">
+              <div className="h-full bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-[#EC4899] w-3/4 animate-pulse" />
+            </div>
           </div>
         )}
       </div>

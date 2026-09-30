@@ -185,7 +185,7 @@ class SupabaseService {
           mood: project.creative_brief.mood,
           environment: project.creative_brief.environment,
           camera_language: project.creative_brief.camera_language,
-          lighting_style: project.creative_brief.lighting_style,
+          lighting_style: (project.creative_brief as any).lighting_style || '',
           creative_notes: project.creative_brief.creative_notes,
           visual_references: project.creative_brief.visual_references,
           reference_asset_ids: project.creative_brief.reference_asset_ids,
@@ -244,7 +244,7 @@ class SupabaseService {
           motion_prompt: s.motion_prompt,
           model_target: s.model_target,
           product_reference_ids: s.product_reference_ids || [],
-          notes: s.notes || '',
+          notes: s.creative_notes || s.motion_notes || '',
           updated_at: new Date().toISOString()
         }));
 
@@ -295,7 +295,7 @@ class SupabaseService {
         motion_notes: shot.motion_notes,
         motion_prompt: shot.motion_prompt,
         product_reference_ids: shot.product_reference_ids || [],
-        notes: shot.notes,
+        notes: shot.creative_notes || shot.motion_notes || '',
         updated_at: new Date().toISOString()
       });
 
@@ -529,6 +529,7 @@ class SupabaseService {
       name: row.name,
       description: row.description || '',
       tagline: row.tagline || '',
+      cover_image: row.cover_image || shots[0]?.keyframe_url || shots[0]?.video_url || '',
       status: row.status,
       aspect_ratio: row.aspect_ratio,
       target_length_seconds: row.target_length_seconds || 60,
@@ -541,15 +542,18 @@ class SupabaseService {
         mood: brief.mood,
         environment: brief.environment,
         camera_language: brief.camera_language,
-        lighting_style: brief.lighting_style,
         creative_notes: brief.creative_notes,
         visual_references: brief.visual_references || [],
         reference_asset_ids: brief.reference_asset_ids || [],
-        target_length: brief.target_length
+        output_format: brief.output_format || row.aspect_ratio || '16:9',
+        target_length: brief.target_length || row.target_length_seconds || 60
       },
       creative_concept: {
+        id: concept.id || `concept-${row.id}`,
+        title: concept.title || concept.concept || 'Precision in Motion',
         concept: concept.concept || 'Precision in Motion',
         concept_description: concept.concept_description,
+        creative_direction_prose: concept.creative_direction_prose,
         visual_language_attributes: concept.visual_language_attributes || {
           environment: 'Minimal architectural spaces',
           lighting: 'Controlled directional light',
@@ -564,7 +568,12 @@ class SupabaseService {
           'Keep branding readable.',
           'Treat the product as the hero.'
         ],
-        shot_sequence: concept.shot_sequence || []
+        visual_language: concept.visual_language || 'Minimal architectural spaces',
+        camera_language: concept.camera_language || 'Slow cinematic movement',
+        lighting: concept.lighting || 'Controlled directional light',
+        shot_sequence: concept.shot_sequence || [],
+        created_at: concept.created_at || row.created_at || new Date().toISOString(),
+        updated_at: concept.updated_at || row.updated_at || new Date().toISOString()
       },
       shots,
       created_at: row.created_at,
